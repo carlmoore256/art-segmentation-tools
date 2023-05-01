@@ -15,7 +15,7 @@ class Mask():
     return self.mask_data.shape
   
   @property
-  def area(self):
+  def fill_ratio(self):
     return np.count_nonzero(self.mask_data) / (self.mask_data.shape[0] * self.mask_data.shape[1])
 
   def to_array(self, channels=3):
