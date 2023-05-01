@@ -39,7 +39,7 @@ class Image():
   def load(filepath):
     image_data = cv2.imread(filepath)
     image_data = cv2.cvtColor(image_data, cv2.COLOR_BGR2RGB).astype(float)
-    image_data /= 255
+    image_data /= 256
     return image_data
 
   @staticmethod
