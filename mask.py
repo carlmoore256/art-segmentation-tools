@@ -53,6 +53,68 @@ class Mask():
     if len(array.shape) == len(self.mask_data.shape) + 1:
       mask_temp = np.expand_dims(mask_temp, -1)
     return array * mask_temp
+  
+  def __iadd__(self, other):  
+    if isinstance(other, Mask):
+      self.mask_data += other.mask_data
+    elif isinstance(other, (np.ndarray)):
+      self.mask_data += other
+    elif isinstance(other, (float, int)):
+      self.mask_data += other
+    else:
+        return NotImplemented
+    return self
+
+  def __isub__(self, other):
+    if isinstance(other, Mask):
+      self.mask_data -= other.mask_data
+    elif isinstance(other, (np.ndarray)):
+      self.mask_data -= other
+    elif isinstance(other, (float, int)):
+      self.mask_data -= other
+    else:
+        return NotImplemented
+    return self
+
+  def __imul__(self, other):
+    if isinstance(other, Mask):
+      self.mask_data *= other.mask_data
+    elif isinstance(other, (np.ndarray)):
+      self.mask_data *= other
+    elif isinstance(other, (float, int)):
+      self.mask_data *= other
+    else:
+        return NotImplemented
+    return self
+
+  def __itruediv__(self, other):
+    if isinstance(other, Mask):
+      self.mask_data /= other.mask_data
+    elif isinstance(other, (np.ndarray)):
+      self.mask_data /= other
+    elif isinstance(other, (float, int)):
+      self.mask_data /= other
+    else:
+        return NotImplemented
+    return self
+
+  def __ipow__(self, other):
+    if isinstance(other, Mask):
+      self.mask_data **= other.mask_data
+    elif isinstance(other, (np.ndarray)):
+      self.mask_data **= other
+    elif isinstance(other, (float, int)):
+      self.mask_data **= other
+    else:
+        return NotImplemented
+    return self
+
+  def __eq__(self, other):
+      if isinstance(other, Mask):
+          return np.array_equal(self.mask_data, other.mask_data)
+      else:
+          return NotImplemented
+  
 
 class AnnotationMask(Mask):
 

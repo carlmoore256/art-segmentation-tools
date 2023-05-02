@@ -43,6 +43,11 @@ class SegmentedImage():
     unmasked = self.unmasked_area_mask()
     background = self.image.new_from_mask(unmasked)
     return background
+  
+  def get_masks_by_area(self):
+    if self.masks is None:
+      raise Exception("[!] Masks have't been computed yet, run compute_masks()")
+    return sorted(self.masks, key=(lambda x: x.area), reverse=True)
 
   def __len__(self):
     if self.masks is None:
