@@ -26,12 +26,12 @@ class SegmentedImage():
       new_image = alpha_blend_images(new_image, mask.to_image(4, color=None), opacity)
     return new_image
 
-  def get_masked(self, index):
+  def get_masked(self, index, with_alpha=True):
     if self.masks is None:
       raise Exception("[!] Masks have't been computed yet, run compute_masks()")
     if index < 0 or index > len(self.masks) - 1:
       raise Exception(f"[!] Index {index} out of range")
-    return self.image.new_from_mask(self.masks[index])
+    return self.image.new_from_mask(self.masks[index], with_alpha=with_alpha)
 
   def unmasked_area_mask(self):
     unmasked = np.ones((self.image.shape[0], self.image.shape[1]))

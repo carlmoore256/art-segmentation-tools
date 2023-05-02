@@ -1,0 +1,3 @@
+[submodule "inpaint-anything"]
+	path = inpaint-anything
+	url = https://github.com/geekyutao/inpaint-anything

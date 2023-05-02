@@ -2,6 +2,9 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image as PImage
+from PIL import Image as PImage
+import io
+import base64
 
 class Image():
 
@@ -101,7 +104,7 @@ class Image():
   def new_from_mask(self, mask, with_alpha=False):
     image = Image.from_data(mask.apply(self.image_data.copy()))
     if with_alpha:
-      image.add_alpha(mask)
+      image.add_alpha(mask.data)
     return image
 
   def add_alpha(self, alpha=None, mult=1):
@@ -112,8 +115,14 @@ class Image():
       else:
         self.image_data[:, :, 3] = alpha
         return
-    alpha = np.ones((self.image_data.shape[0], self.image_data.shape[1], 1), dtype=np.uint8)    
+    if alpha is None:
+      alpha = np.ones((self.image_data.shape[0], self.image_data.shape[1], 1), dtype=np.uint8)
+    elif len(alpha.shape) < 3:
+      alpha = np.expand_dims(alpha, axis=-1)
     self.image_data = np.concatenate([self.image_data, alpha], axis=-1)
+
+  def to_data_uri(self):
+    return rgba_to_base64(self.get_writeable_data())
 
   def __iadd__(self, other):
     
@@ -183,3 +192,22 @@ def alpha_blend_images(image_bottom, image_top, top_transparency=0.75):
   foreground = PImage.fromarray((image_top.get_writeable_data() * top_transparency).astype(np.uint8))
   background.paste(foreground, (0,0), foreground)
   return Image.from_data(np.asarray(background))
+
+
+def rgba_to_base64(rgba_array):
+    """
+    Converts an RGBA numpy array to a base64-encoded PNG data URI.
+    Works with RGB as well
+    Args:
+        rgba_array (np.array): A numpy array of shape (height, width, 4) representing RGBA pixels.
+    
+    Returns:
+        str: A base64-encoded PNG data URI.
+    """
+    image = PImage.fromarray(rgba_array)
+    with io.BytesIO() as buffer:
+        image.save(buffer, format="PNG")
+        buffer.seek(0)
+        base64_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        data_uri = f"data:image/png;base64,{base64_data}"
+    return data_uri

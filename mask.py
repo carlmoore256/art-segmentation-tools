@@ -42,6 +42,9 @@ class Mask():
       title = "Mask"
     Image.plot(self.mask_data, title)
 
+  def copy(self):
+    return Mask(self.mask_data.copy())
+
   def invert(self):
     return Mask(np.logical_not(self.mask_data))
 
@@ -53,6 +56,12 @@ class Mask():
     if len(array.shape) == len(self.mask_data.shape) + 1:
       mask_temp = np.expand_dims(mask_temp, -1)
     return array * mask_temp
+  
+  def get_writeable_data(self):
+    mask_data = self.mask_data.copy()
+    if np.max(mask_data) <= 1:
+      mask_data = np.clip(mask_data*255, 0, 255)
+    return mask_data.astype(np.uint8)
   
   def __iadd__(self, other):  
     if isinstance(other, Mask):

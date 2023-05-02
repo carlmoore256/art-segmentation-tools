@@ -1,3 +1,7 @@
+import torch
+
+TORCH_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 SEGMENTATION_MODEL_PATH = "data/sam_vit_h_4b8939.pth"
 
 DEFAULT_MASK_GENERATOR_PARAMS = {
@@ -8,3 +12,4 @@ DEFAULT_MASK_GENERATOR_PARAMS = {
     "crop_n_points_downscale_factor": 2,
     "min_mask_region_area": 100,
 }
+
