@@ -8,6 +8,7 @@ class SegmentedImage():
   def __init__(self, image: Image):
     self.image = image
     self.masks = None
+    self.background = None
 
   def segment(self, mask_generator : SamAutomaticMaskGenerator):
     input_data = self.image.get_writeable_data()
@@ -40,14 +41,19 @@ class SegmentedImage():
     return Mask(unmasked)
 
   def get_background(self):
-    unmasked = self.unmasked_area_mask()
-    background = self.image.new_from_mask(unmasked)
-    return background
+    if self.background is None:
+      unmasked = self.unmasked_area_mask()
+      # simple way to make a background by choosing the parts that haven't been segmented
+      self.background = self.image.new_from_mask(unmasked)
+    return self.background
   
-  def get_masks_by_area(self):
+  def set_background(self, background : Image):
+    self.background = background
+  
+  def get_masks_by_area(self, descending=True):
     if self.masks is None:
       raise Exception("[!] Masks have't been computed yet, run compute_masks()")
-    return sorted(self.masks, key=(lambda x: x.area), reverse=True)
+    return sorted(self.masks, key=(lambda x: x.area), reverse=descending)
 
   def __len__(self):
     if self.masks is None:

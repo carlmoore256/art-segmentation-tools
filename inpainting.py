@@ -13,7 +13,7 @@ def inpaint_image(image : Image, mask : Mask, text_prompt : str = None):
     img_filled = fill_img_with_sd(
         image.get_writeable_data(), 
         mask.get_writeable_data(), 
-        text_prompt="An abstract painting titled 'When destruction couldn't destroy'", 
+        text_prompt=text_prompt, 
         device=TORCH_DEVICE
     )
     return Image.from_data(img_filled)

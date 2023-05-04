@@ -37,10 +37,10 @@ class Mask():
     image_data *= image_data_orig
     return Image.from_data(image_data)
 
-  def show(self, title=None):
+  def show(self, figsize=(4,4), title=None):
     if title is None:
       title = "Mask"
-    Image.plot(self.mask_data, title)
+    Image.plot(self.mask_data, figsize, title)
 
   def copy(self):
     return Mask(self.mask_data.copy())

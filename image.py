@@ -46,7 +46,7 @@ class Image():
     return image_data
 
   @staticmethod
-  def plot(image_data, title="", figsize=(10,10)):
+  def plot(image_data, figsize=(4,4), title=""):
     fig, ax = plt.subplots(figsize=figsize)
     ax.imshow(image_data)
     ax.set_title(title)
@@ -89,8 +89,8 @@ class Image():
     cv2.imwrite(outpath, cv2.cvtColor(image_data, color))    
     print(f'Saved image to {outpath}')
 
-  def show(self, title="", figsize=(10,10)):
-    Image.plot(self.image_data, title, figsize).show()
+  def show(self, figsize=(4,4), title=""):
+    Image.plot(self.image_data, figsize, title).show()
 
   def resize(self, dims, interpolation=None):
     if interpolation is None: # auto select interpolation
