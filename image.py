@@ -101,6 +101,16 @@ class Image():
         interpolation = cv2.INTER_CUBIC
     self.image_data = cv2.resize(self.image_data, dims, interpolation=interpolation)
 
+  def pad_to_square(self):
+      height, width = self.image_data.shape[:2]
+      diff = abs(width - height)
+      pad_size = diff // 2
+      if height > width:
+          padding = ((0, 0), (pad_size, pad_size), (0, 0))
+      else:
+          padding = ((pad_size, pad_size), (0, 0), (0, 0))
+      self.image_data = np.pad(self.image_data, padding, mode='constant')
+
   def new_from_mask(self, mask, with_alpha=False):
     image = Image.from_data(mask.apply(self.image_data.copy()))
     if with_alpha:

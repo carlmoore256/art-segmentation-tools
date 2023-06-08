@@ -1,3 +1,6 @@
 [submodule "inpaint-anything"]
 	path = inpaint-anything
 	url = https://github.com/geekyutao/inpaint-anything
+[submodule "deepsvg"]
+	path = deepsvg
+	url = https://github.com/alexandre01/deepsvg.git
