@@ -6,3 +6,4 @@ accelerate
 svgpathtools
 cairosvg
 scikit-image
+tqdm

@@ -2,6 +2,7 @@ from segment_anything import SamAutomaticMaskGenerator
 from image import Image, alpha_blend_images
 from mask import AnnotationMask, Mask
 import numpy as np
+from tqdm import tqdm
 
 class SegmentedImage():
 
@@ -23,7 +24,8 @@ class SegmentedImage():
       raise Exception("[!] Masks have't been computed yet, run segment()")
     sorted_masks = sorted(self.masks, key=(lambda x: x.area), reverse=True)
     new_image = self.image.copy()
-    for mask in sorted_masks:
+    print(f'Generating mask visualization for {len(sorted_masks)} masks')
+    for mask in tqdm(sorted_masks):
       new_image = alpha_blend_images(new_image, mask.to_image(4, color=None), opacity)
     return new_image
 

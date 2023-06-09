@@ -2,6 +2,7 @@ import svgwrite
 # import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from svg_tools import masks_to_svg, simplify_svg
+import os
 
 def create_layered_svg(seg_image, outpath):
   width = seg_image.image.width
@@ -55,12 +56,10 @@ def create_svg_bundle(seg_image, outpath):
   # sort the layers from largest to smallest
   sorted_masks = seg_image.get_masks_by_area()
 
-  # UNCOMMENT ME
   print(f'Tracing SVG with {len(sorted_masks)} masks')
   traced_svg = masks_to_svg(sorted_masks)
   print(f'Simplifying SVG')
   deep_svg = simplify_svg(traced_svg)
-
 
   # I know this is exhausting
   svg_str = deep_svg.to_str()
@@ -75,3 +74,11 @@ def create_svg_bundle(seg_image, outpath):
     element['id'] = f'layer-{i}'
     doc.add(element)
   doc.saveas(outpath)
+
+
+# creates the svg bundle within a destination directory
+def export_bundle(seg_image, artwork_name, root_dir, overwrite=False):
+  filepath =  f"{root_dir}/{artwork_name}.svg"
+  if os.path.exists(filepath) and not overwrite:
+    raise Exception(f"File {filepath} already exists, choose another id, or set overwrite = True")
+  create_svg_bundle(seg_image, filepath)

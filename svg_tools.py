@@ -1,5 +1,9 @@
 import sys
-sys.path.append("/content/art-segmentation-tools/deepsvg")
+import os
+
+full_path = os.path.abspath("./deepsvg")
+sys.path.append(full_path)
+
 from skimage.measure import find_contours
 from svgpathtools import Path, Line, smoothed_path, paths2Drawing, svgstr2paths
 from IPython.display import SVG, display
