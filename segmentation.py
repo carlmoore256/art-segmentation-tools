@@ -5,9 +5,9 @@ from definitions import SEGMENTATION_MODEL_PATH, TORCH_DEVICE
 
 SEGMENTATION_MODEL = None
 
-def load_model(sam_model_type="vit_h"):
+def load_model(sam_model_type="vit_h", checkpoint=SEGMENTATION_MODEL_PATH):
     global SEGMENTATION_MODEL
-    SEGMENTATION_MODEL = sam_model_registry[sam_model_type](checkpoint=SEGMENTATION_MODEL_PATH)
+    SEGMENTATION_MODEL = sam_model_registry[sam_model_type](checkpoint=checkpoint)
     SEGMENTATION_MODEL.to(device=TORCH_DEVICE)
     return SEGMENTATION_MODEL
 

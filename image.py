@@ -62,6 +62,15 @@ class Image():
     image = Image()
     image.image_data = image_data
     return image
+  
+  @staticmethod
+  def from_base64(base64_str):
+    image_data = base64.b64decode(base64_str)
+    image_data = np.frombuffer(image_data, np.uint8)
+    image_data = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
+    image_data = cv2.cvtColor(image_data, cv2.COLOR_BGR2RGB).astype(float)
+    image_data /= 256
+    return Image.from_data(image_data)
 
   @staticmethod
   def empty_image_like(image):
@@ -91,6 +100,14 @@ class Image():
 
   def show(self, figsize=(4,4), title=""):
     Image.plot(self.image_data, figsize, title).show()
+
+  def get_cropped(self, bbox):
+    xmin, xmax, ymin, ymax = bbox
+    xmin = int(max(0, xmin))
+    xmax = int(min(self.image_data.shape[0], xmax))
+    ymin = int(max(0, ymin))
+    ymax = int(min(self.image_data.shape[1], ymax))
+    return Image.from_data(self.image_data[ymin:ymax, xmin:xmax])
 
   def resize(self, dims, interpolation=None):
     if interpolation is None: # auto select interpolation

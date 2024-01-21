@@ -1,5 +1,6 @@
 import numpy as np
 from image import Image
+from PIL import Image as PILImage, ImageDraw
 
 class Mask():
 
@@ -159,3 +160,21 @@ class AnnotationMask(Mask):
 
   def __repr__(self) -> str:
     return f'Annotation Mask | area: {self.area}'
+  
+
+def create_mask_from_path(path, image_shape, scale_path=True):
+    mask = PILImage.new('L', (image_shape[0], image_shape[1]), 0)
+    draw = ImageDraw.Draw(mask)
+    if scale_path:
+      path = [(p[0] * image_shape[0], p[1] * image_shape[1]) for p in path]
+    draw.polygon(path, fill=255)
+    arr = np.array(mask).astype(np.float32)
+    arr[arr == 255] = 1
+    return Mask(arr)
+
+    # return Mask(np.array(mask))
+    # Create an empty mask
+    # mask = np.zeros(image_shape, dtype=np.uint8)
+    # # Fill the mask
+    # cv2.fillPoly(mask, [np.array(path)], 255)
+    # return mask

@@ -1,6 +1,9 @@
 import torch
 
-TORCH_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+# TORCH_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+# TORCH_DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
+TORCH_DEVICE = 'cpu'
+print(f"Using device: {TORCH_DEVICE}")
 
 SEGMENTATION_MODEL_PATH = "data/sam_vit_h_4b8939.pth"
 

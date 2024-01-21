@@ -33,7 +33,7 @@ def create_layered_svg(seg_image, outpath):
 
 # creates the svg bundle containing the original image, background image, and 
 # segmentation paths
-def create_svg_bundle(seg_image, outpath):
+def create_svg_bundle(seg_image, outpath = None):
   width = seg_image.image.width
   height = seg_image.image.height
   doc = svgwrite.Drawing(size=(width, height))
@@ -73,7 +73,9 @@ def create_svg_bundle(seg_image, outpath):
     element.add(path)
     element['id'] = f'layer-{i}'
     doc.add(element)
-  doc.saveas(outpath)
+  if outpath is not None:
+    doc.saveas(outpath)
+  return doc
 
 
 # creates the svg bundle within a destination directory
@@ -81,4 +83,4 @@ def export_bundle(seg_image, artwork_name, root_dir, overwrite=False):
   filepath =  f"{root_dir}/{artwork_name}.svg"
   if os.path.exists(filepath) and not overwrite:
     raise Exception(f"File {filepath} already exists, choose another id, or set overwrite = True")
-  create_svg_bundle(seg_image, filepath)
+  doc = create_svg_bundle(seg_image, filepath)
