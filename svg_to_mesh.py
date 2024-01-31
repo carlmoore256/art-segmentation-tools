@@ -9,12 +9,16 @@ if __name__ == "__main__":
     args.add_argument("--depth_mult", type=float, required=False, default=100.0)
     args.add_argument("--sample_density", type=float, required=False, default=0.004)
     args.add_argument("--simplify_eps", type=float, required=False, default=0.005)
+    args.add_argument("--min_area", type=float, required=False, default=0.0001)
+    args.add_argument("--max_eccentricity", type=float, required=False, default=75)
     args = args.parse_args()
     mesher = SVGMesher(args.input)
     print(f'Loaded SVG from {args.input} with {len(mesher.paths)} paths, tesselating polygons...')
     mesher.mesh({
         "sample_density": args.sample_density,
-        "simplify_eps": args.simplify_eps
+        "simplify_eps": args.simplify_eps,
+        "min_area": args.min_area,
+        "max_eccentricity": args.max_eccentricity
     })
     print(f'Generating and applying depth map...')
     mesher.apply_depth_map(args.depth_mult)

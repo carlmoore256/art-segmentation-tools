@@ -8,7 +8,7 @@ import triangle
 import numpy as np
 from geometric_sampling import poisson_disk_sampling_within_path, centroidal_voronoi_tessellation_within_path, quad_points_within_path, generate_mesh_density_map, thin_points_based_on_density, generate_sobel_density_map
 from depth_mapping import create_depth_map
-from image_processing import get_image_gradients, plot_image_gradients, crop_depth_map, generate_normal_map
+from image_processing import get_image_gradients, plot_image_gradients, crop_depth_map, generate_normal_map, unletterbox
 from tqdm import tqdm
 from image import Image
 
@@ -221,11 +221,21 @@ class SVGMesher:
             }, file, indent=2)
         print(f"Finished exporting {len(self.mesh_data)} layers to {output_dir} for {name}")
 
-    def apply_depth_map(self, depth_multiplier=10.0, depth_map=None, edge_removal=True, value_percentile_range=(8, 100)):
+    def apply_depth_map(self, 
+                        depth_multiplier=10.0, 
+                        depth_map=None, 
+                        edge_removal=True, 
+                        value_percentile_range=(8, 100), 
+                        edge_params={
+                            "threshold": 0.5,
+                            "kern_size": 3,
+                            "iterations": 3,
+                            "blur": 21
+                        }
+    ):
         if depth_map is None:
             if self.depth_map is None:
-                print(f'Computing depth map')
-                self.depth_map = create_depth_map(self.image.get_writeable_data())
+                self._create_depth_map()
             depth_map = self.depth_map            
         for result in self.mesh_data:
             segment_depthmap, avg_segment_depth = crop_depth_map(
@@ -234,16 +244,28 @@ class SVGMesher:
                 result.segment_data["image"]["mask"],
                 edge_removal,
                 value_percentile_range[0],
-                value_percentile_range[1])
+                value_percentile_range[1],
+                edge_params)
             result.set_depth_map(segment_depthmap, depth_multiplier, avg_segment_depth)
         print(f'Finished applying depth map to all layers')
-
+    
     def show_depth_map(self):
         if self.depth_map is None:
-            print(f'Computing depth map')
-            self.depth_map = create_depth_map(self.image.get_writeable_data())
+            self._create_depth_map()
         plt.imshow(self.depth_map)
         plt.show()
+
+    def _create_depth_map(self):
+        print(f'Computing depth map')
+        image_data = self.image.get_writeable_data()
+        image_data, (diff_width, diff_height) = unletterbox(image_data)
+        depth_map = create_depth_map(image_data)
+        print(f'max of depth map is {np.max(depth_map)}')
+        # pad the depth map back out to the original size
+        depth_map_image = Image.from_data(depth_map)
+        depth_map_image.pad_to_square()
+        self.depth_map = depth_map_image.image_data
+
 
     @property
     def metadata(self):
@@ -406,15 +428,25 @@ def mesh_all_svg_paths(
         sample_density=0.3,
         simplify_eps=0.005,
         dynamic_simplify=False,
+        min_area=0.0001,
+        max_eccentricity=75,
     ):
     print(f'Meshing with sample density {sample_density} and simplify eps {simplify_eps}')
     paths, dpaths, metadata = svg2paths2(svg_path)
     image = get_image_from_svg(svg_path)
     # sort paths by area
     paths = sorted(paths, key=lambda p: p.area(), reverse=True)
+    orig_len = len(paths)
     # filter out paths that are really tall or wide
-    paths = list(filter(lambda p: path_eccentricity(p) < 100, paths))
+    paths = list(filter(lambda p: path_eccentricity(p) < max_eccentricity, paths))
     paths = list(filter(lambda p: p.area() > 0, paths))
+    if len(paths) == 0:
+        raise Exception("No paths remain after filtering")
+    max_area = paths[0].area()
+    paths = list(filter(lambda p: p.area() / max_area > min_area, paths))
+
+    print(f'Filtered out {orig_len - len(paths)} paths with area < {min_area} or eccentricity > {max_eccentricity} | Remaining paths: {len(paths)}')
+
     total_verts = 0
     all_segment_data = []
     for i, p in enumerate(paths):

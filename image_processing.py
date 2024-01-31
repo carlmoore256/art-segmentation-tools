@@ -70,7 +70,19 @@ def normalize_image_percentile(image, lower_percentile=1, upper_percentile=99):
     return normalized_image
 
 
-def crop_depth_map(depth_map, bbox, mask, edge_removal=False, lower_percentile=1, upper_percentile=99):
+def crop_depth_map(depth_map, 
+                   bbox, 
+                   mask, 
+                   edge_removal=False, 
+                   lower_percentile=1, 
+                   upper_percentile=99, 
+                   edge_removal_params={
+                        "threshold": 0.5,
+                        "kern_size": 3,
+                        "iterations": 3,
+                        "blur": 21
+                    }
+):
     depth = depth_map.copy()[int(bbox[2]):int(bbox[2])+mask.shape[0], int(bbox[0]):int(bbox[0])+mask.shape[1]]
     # make sure depth map and mask are the same size
     if depth.shape[0] != mask.shape[0] or depth.shape[1] != mask.shape[1]:
@@ -81,21 +93,19 @@ def crop_depth_map(depth_map, bbox, mask, edge_removal=False, lower_percentile=1
 
     # get the average depth of the mask thats nonzero
     avg_depth = np.mean(depth[depth > 0])
-
+    try:
+        depth = normalize_image_percentile(
+            depth, lower_percentile, upper_percentile)
+    except Exception as e:
+        print(f'[!] Failed to normalize depth map: {depth.shape} | {e}')
     if edge_removal:
         # remove edge artifacts
         try:
-            edge = edge_mask(depth, threshold=0.5, kern_size=3,
-                            iterations=3, blur=21)
+            edge = edge_mask(depth, **edge_removal_params)
             edge = 1-edge
             depth = depth * np.expand_dims(edge, axis=-1)
         except:
             print(f'[!] Failed to remove edge artifacts: {depth.shape} | {mask.shape}')
-    try:
-        depth = normalize_image_percentile(
-            depth, lower_percentile, upper_percentile)
-    except:
-        print(f'[!] Failed to normalize depth map: {depth.shape}')
     return depth, avg_depth
 
 
@@ -138,3 +148,32 @@ def plot_histogram(image, exclude_zeros=True):
     plt.ylabel("Frequency")
     plt.grid(True)
     plt.show()
+
+def unletterbox(image):
+    height, width = image.shape[:2]
+    # Initialize the boundaries
+    top = 0
+    bottom = height - 1
+    left = 0
+    right = width - 1
+    # Check for black bars on top and bottom
+    while top < bottom:
+        if np.all(image[top, :] == (0, 0, 0)):
+            top += 1
+        elif np.all(image[bottom, :] == (0, 0, 0)):
+            bottom -= 1
+        else:
+            break
+    # Check for black bars on left and right
+    while left < right:
+        if np.all(image[:, left] == (0, 0, 0)):
+            left += 1
+        elif np.all(image[:, right] == (0, 0, 0)):
+            right -= 1
+        else:
+            break
+    # Calculate the actual resolution and crop the image
+    actual_width = right - left + 1
+    actual_height = bottom - top + 1
+    cropped_img = image[top:bottom + 1, left:right + 1]
+    return cropped_img, (width-actual_width, height-actual_height)

@@ -17,8 +17,7 @@ class SegmentedImage():
         input_data = self.image.get_writeable_data()
         raw_masks = mask_generator.generate(input_data)
         if len(raw_masks) == 0:
-            print(f'[!] Error computing masks, none found!')
-            return
+            raise Exception(f'[!] Error computing masks, none found!')
         self.masks = [AnnotationMask(m) for m in raw_masks]
 
     def visualize_masks(self, opacity=0.8):
