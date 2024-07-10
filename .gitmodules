@@ -4,3 +4,6 @@
 [submodule "deepsvg"]
 	path = deepsvg
 	url = https://github.com/alexandre01/deepsvg.git
+[submodule "Depth-Anything"]
+	path = Depth-Anything
+	url = https://github.com/LiheYoung/Depth-Anything

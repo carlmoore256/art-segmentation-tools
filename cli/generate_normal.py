@@ -4,10 +4,14 @@ from image_processing import generate_normal_map
 import cv2
 import os
 
+"""
+Example usage:
+python -m cli.generate_normal.py /path/to/image.jpg --ksize 3
+"""
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
-    args.add_argument("--image", type=str, required=True)
+    args.add_argument("image", type=str)
     args.add_argument("--output", type=str, required=False)
     args.add_argument("--ksize", type=int, default=3)
     args.add_argument("--scale", type=int, default=1)

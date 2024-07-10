@@ -17,57 +17,66 @@ from image import Image, alpha_blend_images
 from mask import Mask, AnnotationMask
 from segmented_image import SegmentedImage
 from segment_anything import SamAutomaticMaskGenerator
+from depth.mde import predict_depth, MDEModelType
 
-SEGMENTATION_MODEL_PATH = "./art-segmentation-tools/data/sam_vit_h_4b8939.pth"
-
+# get path of this file
+path = os.path.dirname(os.path.abspath(__file__))
+SEGMENTATION_MODEL_PATH = os.path.join(path, "data/sam_vit_h_4b8939.pth")
 
 # "DPT_Large": MiDaS v3 - Large     (highest accuracy, slowest inference speed)
 # "DPT_Hybrid": MiDaS v3 - Hybrid    (medium accuracy, medium inference speed)
 # "MiDaS_small": MiDaS v2.1 - Small   (lowest accuracy, highest inference speed)
-MIDAS_TYPE = "DPT_Large"
-MIDAS = None
-TRANSFORM = None
+# MIDAS_TYPE = "DPT_Large"
+# MIDAS = None
+# TRANSFORM = None
 
-device = torch.device(
-    "cuda") if torch.cuda.is_available() else torch.device("cpu")
-
-
-def predict_depthmap(image : np.ndarray):
-    global MIDAS, TRANSFORM, MIDAS_TYPE
-    input_batch = TRANSFORM(image).to(device)
-    with torch.no_grad():
-        prediction = MIDAS(input_batch)
-        prediction = torch.nn.functional.interpolate(
-            prediction.unsqueeze(1),
-            size=image.shape[:2],
-            mode="bicubic",
-            align_corners=False,
-        ).squeeze()
-    output = prediction.cpu().numpy()
-    output = (output - np.min(output)) / (np.max(output) - np.min(output))
-    output = np.expand_dims(output, -1)
-    return output
+# device = torch.device(
+#     "cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
-def create_depth_map(image: np.ndarray, model_type="DPT_Large"):
-    assert image.dtype == np.uint8
-    assert model_type in ["DPT_Large", "DPT_Hybrid", "MiDaS_small"]
-    global MIDAS, TRANSFORM, MIDAS_TYPE
-    if MIDAS is None or MIDAS_TYPE != model_type or TRANSFORM is None:
-        midas = torch.hub.load("intel-isl/MiDaS", model_type)
-        midas.to(device)
-        midas.eval()
-        midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
-        if model_type == "DPT_Large" or model_type == "DPT_Hybrid":
-            transform = midas_transforms.dpt_transform
-        else:
-            transform = midas_transforms.small_transform
-        TRANSFORM = transform
-        MIDAS = midas
-    depthmap = predict_depthmap(image)
-    return depthmap
+# def predict_depthmap(image : np.ndarray):
+#     global MIDAS, TRANSFORM, MIDAS_TYPE
+#     input_batch = TRANSFORM(image).to(device)
+#     with torch.no_grad():
+#         prediction = MIDAS(input_batch)
+#         prediction = torch.nn.functional.interpolate(
+#             prediction.unsqueeze(1),
+#             size=image.shape[:2],
+#             mode="bicubic",
+#             align_corners=False,
+#         ).squeeze()
+#     output = prediction.cpu().numpy()
+#     output = (output - np.min(output)) / (np.max(output) - np.min(output))
+#     output = np.expand_dims(output, -1)
+#     return output
 
-def create_depth_map_from_file(image_path, model_type="DPT_Large"):
+
+# def create_depth_map(image: np.ndarray, model_type="DPT_Large"):
+#     assert image.dtype == np.uint8
+#     assert model_type in ["DPT_Large", "DPT_Hybrid", "MiDaS_small"]
+#     global MIDAS, TRANSFORM, MIDAS_TYPE
+#     if MIDAS is None or MIDAS_TYPE != model_type or TRANSFORM is None:
+#         midas = torch.hub.load("intel-isl/MiDaS", model_type)
+#         midas.to(device)
+#         midas.eval()
+#         midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
+#         if model_type == "DPT_Large" or model_type == "DPT_Hybrid":
+#             transform = midas_transforms.dpt_transform
+#         else:
+#             transform = midas_transforms.small_transform
+#         TRANSFORM = transform
+#         MIDAS = midas
+#     depthmap = predict_depthmap(image)
+#     return depthmap
+
+
+def create_depth_map(image: np.ndarray, model_type=MDEModelType.DEPTH_ANYTHING_LARGE):
+    return predict_depth(image, model_type)
+
+
+def create_depth_map_from_file(
+    image_path, model_type=MDEModelType.DEPTH_ANYTHING_LARGE
+):
     image = cv2.imread(image_path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return create_depth_map(image, model_type)
@@ -102,13 +111,13 @@ def create_segmented_image(image_path):
         # (0) If > 0, postprocessing will be applied to remove disconnected regions and holes in masks with area smaller than min_mask_region_area. Requires opencv.
         min_mask_region_area=100,
         # ("binary_mask")  The form masks are returned in. Can be 'binary_mask', 'uncompressed_rle', or 'coco_rle'. 'coco_rle' requires pycocotools. For large resolutions, 'binary_mask' may consume large amounts of memory.
-        output_mode="binary_mask"
+        output_mode="binary_mask",
     )
     image = Image(image_path)
     print(f"Loaded image with dimensions: {image.shape}")
     seg_image = SegmentedImage(image)
     seg_image.segment(mask_generator)
-    print(f'Generated segmented image: {seg_image}')
+    print(f"Generated segmented image: {seg_image}")
     return seg_image
 
 
@@ -122,20 +131,24 @@ def refine_depthmap(segments_image_normalized, depthmap, blend=0.5):
         # gradation_mask = ~gradation_mask
         gradation_depth = depthmap * gradation_mask
         gradation_depth = cv2.erode(
-            gradation_depth, np.ones((3, 3), np.uint8), iterations=3)
+            gradation_depth, np.ones((3, 3), np.uint8), iterations=3
+        )
         nonzero_depth = gradation_depth[gradation_depth > 0]
         avg_depth = np.mean(nonzero_depth)
-        output_depth[gradation_mask] = avg_depth * blend + \
-            output_depth[gradation_mask] * (1 - blend)
+        output_depth[gradation_mask] = avg_depth * blend + output_depth[
+            gradation_mask
+        ] * (1 - blend)
     return output_depth
 
 
 def encode_image_segments(seg_image):
     # Initialize the image array
     segments_image = np.zeros(
-        (seg_image.image.width, seg_image.image.height, 3), dtype=np.uint8)
+        (seg_image.image.width, seg_image.image.height, 3), dtype=np.uint8
+    )
     segments_image_normalized = np.zeros(
-        (seg_image.image.width, seg_image.image.height, 1), dtype=np.float32)
+        (seg_image.image.width, seg_image.image.height, 1), dtype=np.float32
+    )
 
     def get_next_color(current_color):
         r, g, b = current_color
@@ -149,6 +162,7 @@ def encode_image_segments(seg_image):
             g = 0
             b = 0
         return r, g, b
+
     current_color = (0, 0, 0)
     # segments_image[:, :, :] = current_color
 
@@ -175,13 +189,27 @@ def resize_image(image, max_px=2000):
     return cv2.resize(image, (new_width, new_height))
 
 
-def save_output(refined_depthmap, segments_image, image_path, outpath, filename, max_px=2000):
+def save_output(
+    depthmap,
+    segments_image,
+    image_path,
+    outpath,
+    filename,
+    max_px=2000,
+    use_16bit=False,
+    invert=False,
+):
     print("Saving output...")
-    color_path = os.path.join(outpath, f'{filename}.color.png')
-    depth_path = os.path.join(outpath, f'{filename}.depth.png')
-    segments_path = os.path.join(outpath, f'{filename}.segments.png')
-    refined_depthmap = (refined_depthmap * 255).astype('uint8')
-    depthmap = cv2.cvtColor(refined_depthmap, cv2.COLOR_GRAY2RGB)
+    color_path = os.path.join(outpath, f"{filename}.color.png")
+    depth_path = os.path.join(outpath, f"{filename}.depth.png")
+    segments_path = os.path.join(outpath, f"{filename}.segments.png")
+    if invert:
+        depthmap = 1 - depthmap
+
+    if use_16bit:
+        depthmap = (depthmap * 65535).astype(np.uint16)
+
+    depthmap = cv2.cvtColor(depthmap, cv2.COLOR_GRAY2RGB)
     if max_px is not None:
         depthmap = resize_image(depthmap, max_px)
     cv2.imwrite(depth_path, depthmap)
@@ -191,45 +219,83 @@ def save_output(refined_depthmap, segments_image, image_path, outpath, filename,
         color_image = resize_image(color_image, max_px)
     cv2.imwrite(color_path, color_image)
 
-    if max_px is not None:
-        segments_image = resize_image(segments_image, max_px)
-    cv2.imwrite(segments_path, segments_image)
-    print(f'Saved color image to {color_path} and depth image to {depth_path}')
+    if segments_image is not None:
+        if max_px is not None:
+            segments_image = resize_image(segments_image, max_px)
+        cv2.imwrite(segments_path, segments_image)
+    print(f"Saved color image to {color_path} and depth image to {depth_path}")
 
 
 def pipeline(image_path, options):
-    seg_image = create_segmented_image(image_path)
-    segments_image, segments_image_normalized = encode_image_segments(
-        seg_image)
-    depthmap = create_depth_map_from_file(image_path)
-    refined_depthmap = refine_depthmap(
-        segments_image_normalized, depthmap, options['blend'])
-    save_output(refined_depthmap, segments_image, image_path,
-                options['outpath'], options['filename'], options['max_px'])
+    if options["use_segmentation"]:
+        seg_image = create_segmented_image(image_path)
+        segments_image, segments_image_normalized = encode_image_segments(seg_image)
+        depthmap = create_depth_map_from_file(image_path)
+        refined_depthmap = refine_depthmap(
+            segments_image_normalized, depthmap, options["blend"]
+        )
+        save_output(
+            refined_depthmap,
+            segments_image,
+            image_path,
+            options["outpath"],
+            options["filename"],
+            options["max_px"],
+            options["use_16bit"],
+            options["invert"],
+        )
+    else:
+        depthmap = create_depth_map_from_file(image_path)
+        print(f"Depthmap dtype: {depthmap.dtype}")
+        if options["max_px"] is not None:
+            depthmap = resize_image(depthmap, options["max_px"])
+        # cv2.imwrite(os.path.join(options['outpath'], options['filename'] + '.png'), depthmap)
+        save_output(
+            depthmap,
+            None,
+            image_path,
+            options["outpath"],
+            options["filename"],
+            options["max_px"],
+            options["use_16bit"],
+            options["invert"],
+        )
 
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description='Create depth map from image')
-    parser.add_argument('--image', type=str,
-                        help='Path to image file')
-    parser.add_argument('--outpath', type=str,
-                        help='Path to output folder')
-    parser.add_argument('--filename', type=str,
-                        help='Output filename')
-    parser.add_argument('--blend', type=float,
-                        help='Blend factor')
-    parser.add_argument('--max_px', type=int,
-                        help='Max dimension of image')
+    parser = argparse.ArgumentParser(description="Create depth map from image")
+    parser.add_argument("--image", type=str, help="Path to image file")
+    parser.add_argument("--outpath", type=str, help="Path to output folder")
+    parser.add_argument("--filename", type=str, help="Output filename")
+    parser.add_argument("--blend", type=float, help="Blend factor", default=0.5)
+    parser.add_argument("--max_px", type=int, help="Max dimension of image")
+
+    # use seg store true
+    parser.add_argument(
+        "--use_segmentation", dest="use_segmentation", action="store_true"
+    )
+
+    parser.add_argument(
+        "--use_16bit", dest="use_16bit", action="store_true", help="Use 16-bit depthmap"
+    )
+
+    parser.add_argument(
+        "--invert", dest="invert", action="store_true", help="Invert depthmap"
+    )
+    # parser.add_argument('--use_segmentation', type=bool,
+    #                     help='Use segmentation', default=False)
     args = parser.parse_args()
 
     options = {
-        'image': args.image,
-        'outpath': args.outpath,
-        'filename': args.filename,
-        'blend': args.blend,
-        'max_px': args.max_px
+        "image": args.image,
+        "outpath": args.outpath,
+        "filename": args.filename,
+        "blend": args.blend,
+        "max_px": args.max_px,
+        "use_segmentation": args.use_segmentation,
+        "use_16bit": args.use_16bit if args.use_16bit is not None else False,
+        "invert": args.invert if args.invert is not None else False,
     }
 
     pipeline(args.image, options)

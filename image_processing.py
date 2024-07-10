@@ -177,3 +177,22 @@ def unletterbox(image):
     actual_height = bottom - top + 1
     cropped_img = image[top:bottom + 1, left:right + 1]
     return cropped_img, (width-actual_width, height-actual_height)
+
+def convert_image_uint8(image: np.ndarray) -> np.ndarray:
+    if image.dtype == np.uint8:
+        return image
+    # check if max value is 1
+    if np.max(image) <= 1:
+        image = (image * 255).astype(np.uint8)
+    else:
+        image = image.astype(np.uint8)
+
+def convert_image_float32(image: np.ndarray) -> np.ndarray:
+    if image.dtype == np.float32:
+        return image
+    # check if max value is 1
+    if np.max(image) <= 1:
+        image = (image * 255).astype(np.float32)
+    else:
+        image = image.astype(np.float32)
+

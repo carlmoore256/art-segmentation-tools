@@ -6,219 +6,247 @@ from PIL import Image as PImage
 import io
 import base64
 
-class Image():
 
-  def __init__(self, filepath=None):
-    self.image_data = None
-    if filepath is not None:
-      self.image_data = Image.load(filepath)
+class Image:
+    def __init__(self, filepath=None):
+        self.image_data = None
+        if filepath is not None:
+            self.image_data = Image.load(filepath)
 
-  @property
-  def shape(self):
-    return self.image_data.shape
+    @property
+    def shape(self):
+        return self.image_data.shape
 
-  @property
-  def width(self):
-    return self.image_data.shape[0]
+    @property
+    def width(self):
+        return self.image_data.shape[0]
 
-  @property
-  def height(self):
-    return self.image_data.shape[1]
-    
-  @property
-  def has_alpha(self):
-    if self.image_data.shape[-1] < 4:
-      return False
-    if self.image_data.shape[-1] == 4:
-      return True
-    else:
-      raise Exception(f"[!] Error: Shape of image_data invalid: {self.image_data.shape}")
+    @property
+    def height(self):
+        return self.image_data.shape[1]
 
-  @property
-  def data(self):
-    return self.image_data
+    @property
+    def has_alpha(self):
+        if self.image_data.shape[-1] < 4:
+            return False
+        if self.image_data.shape[-1] == 4:
+            return True
+        else:
+            raise Exception(
+                f"[!] Error: Shape of image_data invalid: {self.image_data.shape}"
+            )
 
-  @staticmethod
-  def load(filepath):
-    image_data = cv2.imread(filepath)
-    image_data = cv2.cvtColor(image_data, cv2.COLOR_BGR2RGB).astype(float)
-    image_data /= 256
-    return image_data
+    @property
+    def data(self):
+        return self.image_data
 
-  @staticmethod
-  def plot(image_data, figsize=(4,4), title=""):
-    fig, ax = plt.subplots(figsize=figsize)
-    ax.imshow(image_data)
-    ax.set_title(title)
-    ax.axis('off')
-    return fig
+    @staticmethod
+    def load(filepath):
+        image_data = cv2.imread(filepath)
+        image_data = cv2.cvtColor(image_data, cv2.COLOR_BGR2RGB).astype(float)
+        image_data /= 256
+        return image_data
 
-  @staticmethod
-  def from_file(filepath):
-    return Image(filepath)
+    @staticmethod
+    def plot(image_data, figsize=(4, 4), title=""):
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.imshow(image_data)
+        ax.set_title(title)
+        ax.axis("off")
+        return fig
 
-  @staticmethod
-  def from_data(image_data):
-    image = Image()
-    image.image_data = image_data
-    return image
-  
-  @staticmethod
-  def from_base64(base64_str):
-    image_data = base64.b64decode(base64_str)
-    image_data = np.frombuffer(image_data, np.uint8)
-    image_data = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
-    image_data = cv2.cvtColor(image_data, cv2.COLOR_BGR2RGB).astype(float)
-    image_data /= 256
-    return Image.from_data(image_data)
+    @staticmethod
+    def from_file(filepath):
+        return Image(filepath)
 
-  @staticmethod
-  def empty_image_like(image):
-    image_data = np.zeros(image.shape)
-    return Image.from_data(image_data)
+    @staticmethod
+    def from_data(image_data):
+        image = Image()
+        image.image_data = image_data
+        return image
 
-  @property
-  def alpha(self):
-    return self.image_data[:,:,3]
+    @staticmethod
+    def from_base64(base64_str):
+        image_data = base64.b64decode(base64_str)
+        image_data = np.frombuffer(image_data, np.uint8)
+        image_data = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
+        image_data = cv2.cvtColor(image_data, cv2.COLOR_BGR2RGB).astype(float)
+        image_data /= 256
+        return Image.from_data(image_data)
 
-  def copy(self):
-    return Image.from_data(self.data.copy())
+    @staticmethod
+    def empty_image_like(image):
+        image_data = np.zeros(image.shape)
+        return Image.from_data(image_data)
 
-  def get_writeable_data(self):
-    image_data = self.image_data.copy()
-    if np.max(image_data) <= 1:
-      image_data = np.clip(image_data*255, 0, 255)
-    return image_data.astype(np.uint8)
+    @property
+    def alpha(self):
+        return self.image_data[:, :, 3]
 
-  def save(self, outpath):
-    color = cv2.COLOR_RGB2BGR
-    if self.has_alpha:
-      color = cv2.COLOR_RGBA2BGRA
-    image_data = self.get_writeable_data()
-    cv2.imwrite(outpath, cv2.cvtColor(image_data, color))    
-    print(f'Saved image to {outpath}')
+    def copy(self):
+        return Image.from_data(self.data.copy())
 
-  def show(self, figsize=(4,4), title=""):
-    Image.plot(self.image_data, figsize, title).show()
+    def get_writeable_data(self):
+        image_data = self.image_data.copy()
+        if np.max(image_data) <= 1:
+            image_data = np.clip(image_data * 255, 0, 255)
+        return image_data.astype(np.uint8)
 
-  def get_cropped(self, bbox):
-    xmin, xmax, ymin, ymax = bbox
-    xmin = int(max(0, xmin))
-    xmax = int(min(self.image_data.shape[0], xmax))
-    ymin = int(max(0, ymin))
-    ymax = int(min(self.image_data.shape[1], ymax))
-    return Image.from_data(self.image_data[ymin:ymax, xmin:xmax])
+    def save(self, outpath):
+        color = cv2.COLOR_RGB2BGR
+        if self.has_alpha:
+            color = cv2.COLOR_RGBA2BGRA
+        image_data = self.get_writeable_data()
+        cv2.imwrite(outpath, cv2.cvtColor(image_data, color))
+        print(f"Saved image to {outpath}")
 
-  def resize(self, dims, interpolation=None):
-    if interpolation is None: # auto select interpolation
-      # https://stackoverflow.com/questions/23853632/which-kind-of-interpolation-best-for-resizing-image
-      if dims[0]*dims[1] < self.image_data.shape[0] * self.image_data.shape[1]:
-        interpolation = cv2.INTER_AREA
-      else:
-        interpolation = cv2.INTER_CUBIC
-    self.image_data = cv2.resize(self.image_data, dims, interpolation=interpolation)
+    def show(self, figsize=(4, 4), title=""):
+        Image.plot(self.image_data, figsize, title).show()
 
-  def pad_to_square(self):
-      height, width = self.image_data.shape[:2]
-      diff = abs(width - height)
-      pad_size = diff // 2
-      if height > width:
-          padding = ((0, 0), (pad_size, pad_size), (0, 0))
-      else:
-          padding = ((pad_size, pad_size), (0, 0), (0, 0))
-      self.image_data = np.pad(self.image_data, padding, mode='constant')
+    def get_cropped(self, bbox):
+        xmin, xmax, ymin, ymax = bbox
+        xmin = int(max(0, xmin))
+        xmax = int(min(self.image_data.shape[0], xmax))
+        ymin = int(max(0, ymin))
+        ymax = int(min(self.image_data.shape[1], ymax))
+        return Image.from_data(self.image_data[ymin:ymax, xmin:xmax])
 
-  def new_from_mask(self, mask, with_alpha=False):
-    image = Image.from_data(mask.apply(self.image_data.copy()))
-    if with_alpha:
-      image.add_alpha(mask.data)
-    return image
+    def resize(self, dims, interpolation=None):
+        if interpolation is None:  # auto select interpolation
+            # https://stackoverflow.com/questions/23853632/which-kind-of-interpolation-best-for-resizing-image
+            if dims[0] * dims[1] < self.image_data.shape[0] * self.image_data.shape[1]:
+                interpolation = cv2.INTER_AREA
+            else:
+                interpolation = cv2.INTER_CUBIC
+        self.image_data = cv2.resize(self.image_data, dims, interpolation=interpolation)
 
-  def add_alpha(self, alpha=None, mult=1):
-    if self.has_alpha:
-      if alpha is None:
-        print(f'[/!\] Warning: Image already has alpha')
-        return
-      else:
-        self.image_data[:, :, 3] = alpha
-        return
-    if alpha is None:
-      alpha = np.ones((self.image_data.shape[0], self.image_data.shape[1], 1), dtype=np.uint8)
-    elif len(alpha.shape) < 3:
-      alpha = np.expand_dims(alpha, axis=-1)
-    self.image_data = np.concatenate([self.image_data, alpha], axis=-1)
+    def pad_to_square(self):
+        height, width = self.image_data.shape[:2]
+        diff = abs(width - height)
+        pad_size = diff // 2
+        if height > width:
+            padding = ((0, 0), (pad_size, pad_size), (0, 0))
+        else:
+            padding = ((pad_size, pad_size), (0, 0), (0, 0))
+        self.image_data = np.pad(self.image_data, padding, mode="constant")
 
-  def to_data_uri(self):
-    return rgba_to_base64(self.get_writeable_data())
+    def mirror_to_square(self):
+        height, width = self.image_data.shape[:2]
+        if height == width:
+            # Already a square, no action needed
+            return
 
-  def __iadd__(self, other):
-    
-    if isinstance(other, Image):
-      self.image_data += other.image_data
-    elif isinstance(other, (np.ndarray)):
-      self.image_data += other
-    elif isinstance(other, (float, int)):
-      self.image_data += other
-    else:
-        return NotImplemented
-    return self
+        if height > width:
+            # Mirror along width
+            diff = height - width
+            left_mirror = self.image_data[:, : diff // 2, :][:, ::-1, :]
+            right_mirror = self.image_data[:, width - diff // 2 :, :][:, ::-1, :]
+            self.image_data = np.concatenate(
+                [left_mirror, self.image_data, right_mirror], axis=1
+            )
+        else:
+            # Mirror along height
+            diff = width - height
+            top_mirror = self.image_data[: diff // 2, :, :][::-1, :, :]
+            bottom_mirror = self.image_data[height - diff // 2 :, :, :][::-1, :, :]
+            self.image_data = np.concatenate(
+                [top_mirror, self.image_data, bottom_mirror], axis=0
+            )
 
-  def __isub__(self, other):
-    if isinstance(other, Image):
-      self.image_data -= other.image_data
-    elif isinstance(other, (np.ndarray)):
-      self.image_data -= other
-    elif isinstance(other, (float, int)):
-      self.image_data -= other
-    else:
-        return NotImplemented
-    return self
+    def new_from_mask(self, mask, with_alpha=False):
+        image = Image.from_data(mask.apply(self.image_data.copy()))
+        if with_alpha:
+            image.add_alpha(mask.data)
+        return image
 
-  def __imul__(self, other):
-    if isinstance(other, Image):
-      self.image_data *= other.image_data
-    elif isinstance(other, (np.ndarray)):
-      self.image_data *= other
-    elif isinstance(other, (float, int)):
-      self.image_data *= other
-    else:
-        return NotImplemented
-    return self
+    def add_alpha(self, alpha=None, mult=1):
+        if self.has_alpha:
+            if alpha is None:
+                print(f"[/!\] Warning: Image already has alpha")
+                return
+            else:
+                self.image_data[:, :, 3] = alpha
+                return
+        if alpha is None:
+            alpha = np.ones(
+                (self.image_data.shape[0], self.image_data.shape[1], 1), dtype=np.uint8
+            )
+        elif len(alpha.shape) < 3:
+            alpha = np.expand_dims(alpha, axis=-1)
+        self.image_data = np.concatenate([self.image_data, alpha], axis=-1)
 
-  def __itruediv__(self, other):
-    if isinstance(other, Image):
-      self.image_data /= other.image_data
-    elif isinstance(other, (np.ndarray)):
-      self.image_data /= other
-    elif isinstance(other, (float, int)):
-      self.image_data /= other
-    else:
-        return NotImplemented
-    return self
+    def to_data_uri(self):
+        return rgba_to_base64(self.get_writeable_data())
 
-  def __ipow__(self, other):
-    if isinstance(other, Image):
-      self.image_data **= other.image_data
-    elif isinstance(other, (np.ndarray)):
-      self.image_data **= other
-    elif isinstance(other, (float, int)):
-      self.image_data **= other
-    else:
-        return NotImplemented
-    return self
+    def __iadd__(self, other):
+        if isinstance(other, Image):
+            self.image_data += other.image_data
+        elif isinstance(other, (np.ndarray)):
+            self.image_data += other
+        elif isinstance(other, (float, int)):
+            self.image_data += other
+        else:
+            return NotImplemented
+        return self
 
-  def __eq__(self, other):
-      if isinstance(other, Image):
-          return np.array_equal(self.image_data, other.image_data)
-      else:
-          return NotImplemented
+    def __isub__(self, other):
+        if isinstance(other, Image):
+            self.image_data -= other.image_data
+        elif isinstance(other, (np.ndarray)):
+            self.image_data -= other
+        elif isinstance(other, (float, int)):
+            self.image_data -= other
+        else:
+            return NotImplemented
+        return self
+
+    def __imul__(self, other):
+        if isinstance(other, Image):
+            self.image_data *= other.image_data
+        elif isinstance(other, (np.ndarray)):
+            self.image_data *= other
+        elif isinstance(other, (float, int)):
+            self.image_data *= other
+        else:
+            return NotImplemented
+        return self
+
+    def __itruediv__(self, other):
+        if isinstance(other, Image):
+            self.image_data /= other.image_data
+        elif isinstance(other, (np.ndarray)):
+            self.image_data /= other
+        elif isinstance(other, (float, int)):
+            self.image_data /= other
+        else:
+            return NotImplemented
+        return self
+
+    def __ipow__(self, other):
+        if isinstance(other, Image):
+            self.image_data **= other.image_data
+        elif isinstance(other, (np.ndarray)):
+            self.image_data **= other
+        elif isinstance(other, (float, int)):
+            self.image_data **= other
+        else:
+            return NotImplemented
+        return self
+
+    def __eq__(self, other):
+        if isinstance(other, Image):
+            return np.array_equal(self.image_data, other.image_data)
+        else:
+            return NotImplemented
 
 
 def alpha_blend_images(image_bottom, image_top, top_transparency=0.75):
-  background = PImage.fromarray(image_bottom.get_writeable_data())
-  foreground = PImage.fromarray((image_top.get_writeable_data() * top_transparency).astype(np.uint8))
-  background.paste(foreground, (0,0), foreground)
-  return Image.from_data(np.asarray(background))
+    background = PImage.fromarray(image_bottom.get_writeable_data())
+    foreground = PImage.fromarray(
+        (image_top.get_writeable_data() * top_transparency).astype(np.uint8)
+    )
+    background.paste(foreground, (0, 0), foreground)
+    return Image.from_data(np.asarray(background))
 
 
 def rgba_to_base64(rgba_array):
@@ -227,7 +255,7 @@ def rgba_to_base64(rgba_array):
     Works with RGB as well
     Args:
         rgba_array (np.array): A numpy array of shape (height, width, 4) representing RGBA pixels.
-    
+
     Returns:
         str: A base64-encoded PNG data URI.
     """
@@ -238,3 +266,22 @@ def rgba_to_base64(rgba_array):
         base64_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
         data_uri = f"data:image/png;base64,{base64_data}"
     return data_uri
+
+
+def resize_image_max_px(image, max_px=2000):
+    is_image = isinstance(image, Image)
+    if is_image: 
+        image = image.data
+    if image.shape[0] > image.shape[1]:
+        ratio = image.shape[0] / image.shape[1]
+        new_height = max_px
+        new_width = int(new_height / ratio)
+    else:
+        ratio = image.shape[1] / image.shape[0]
+        new_width = max_px
+        new_height = int(new_width / ratio)
+    image = cv2.resize(image, (new_width, new_height))
+    if is_image:
+        return Image.from_data(image)
+    else:
+        return image

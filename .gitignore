@@ -6,3 +6,5 @@ assets/
 data/
 .env
 testing.ipynb
+test.ipynb
+output/

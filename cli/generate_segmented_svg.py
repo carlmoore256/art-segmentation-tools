@@ -40,23 +40,24 @@ SEGMENTATION_MODEL = load_model()
 #     output_mode="binary_mask"
 # )
 
+
 def configure_sam_parameters(detail_level, segment_stability, complexity_handling):
     """
     Configure parameters for the Segment Anything Model (SAM) to segment abstract artworks.
 
     Parameters:
-    - detail_level (int): Determines the granularity of the segmentation. 
-      Range: 1 to 10, where 1 is the least detailed (coarser segmentation) 
+    - detail_level (int): Determines the granularity of the segmentation.
+      Range: 1 to 10, where 1 is the least detailed (coarser segmentation)
       and 10 is the most detailed (finer segmentation).
-      
-    - segment_stability (int): Controls the stability and consistency of the segments. 
+
+    - segment_stability (int): Controls the stability and consistency of the segments.
       This parameter influences the 'pred_iou_thresh' and 'stability_score_thresh' of the model.
-      Range: 1 to 10, where 1 results in less stable and consistent segments, 
+      Range: 1 to 10, where 1 results in less stable and consistent segments,
       and 10 ensures maximum stability and consistency in segmentation. The values are
       scaled using a power function to fit within the 0-1 range for 'stability_score_thresh'.
-      
+
     - complexity_handling (int): Adjusts how the model handles complex and overlapping patterns in abstract art.
-      Range: 1 to 10, where 1 indicates minimal handling of complexity (suitable for simpler artworks), 
+      Range: 1 to 10, where 1 indicates minimal handling of complexity (suitable for simpler artworks),
       and 10 indicates advanced handling of complex, overlapping patterns.
 
     Returns:
@@ -76,10 +77,12 @@ def configure_sam_parameters(detail_level, segment_stability, complexity_handlin
     stability_score_thresh = min(1.0, base_threshold + 0.05)
 
     # Mapping complexity_handling to box_nms_thresh and min_mask_region_area
-    box_nms_thresh = 0.7 if complexity_handling < 5 else 0.5 if complexity_handling < 8 else 0.3
+    box_nms_thresh = (
+        0.7 if complexity_handling < 5 else 0.5 if complexity_handling < 8 else 0.3
+    )
     # min_mask_region_area = 50 if complexity_handling < 5 else 100 if complexity_handling < 8 else 200
     min_mask_region_area = 100
-    
+
     # Setting other parameters with default or derived values
     points_per_batch = 32
     stability_score_offset = 1.0
@@ -103,9 +106,14 @@ def configure_sam_parameters(detail_level, segment_stability, complexity_handlin
         "crop_n_points_downscale_factor": crop_n_points_downscale_factor,
         "point_grids": point_grids,
         "min_mask_region_area": min_mask_region_area,
-        "output_mode": output_mode
+        "output_mode": output_mode,
     }
 
+
+"""
+Example usage:
+python -m cli.generate_segmented_svg.py --input /path/to/image.jpg --name "segmented" --outdir /path/to/output
+"""
 
 
 if __name__ == "__main__":
@@ -126,11 +134,15 @@ if __name__ == "__main__":
     background = Image(args.background) if args.background else None
     seg_image = SegmentedImage(image)
 
-    parameters = configure_sam_parameters(args.detail_level, args.segment_stability, args.complexity_handling)
-    print(f'Configured mask generator with parameters: {json.dumps(parameters, indent=2)}')
+    parameters = configure_sam_parameters(
+        args.detail_level, args.segment_stability, args.complexity_handling
+    )
+    print(
+        f"Configured mask generator with parameters: {json.dumps(parameters, indent=2)}"
+    )
     mask_generator = SamAutomaticMaskGenerator(model=SEGMENTATION_MODEL, **parameters)
     if background:
         seg_image.set_background(background)
     seg_image.segment(mask_generator)
     export_bundle(seg_image, args.name, args.outdir, overwrite=args.overwrite)
-    print(f'Exported to {args.outdir}')
+    print(f"Exported to {args.outdir}")
